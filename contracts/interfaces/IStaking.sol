@@ -7,17 +7,12 @@ address constant ISUBTENSOR_STAKING_ADDRESS = 0x00000000000000000000000000000000
 
 interface IStaking {
     function addStake(bytes32 hotkey, uint256 netuid) external payable;
-    function removeStake(
-        bytes32 hotkey,
-        uint256 amount,
-        uint256 netuid
-    ) external;
-    function getTotalColdkeyStake(
-        bytes32 coldkey
-    ) external view returns (uint256);
-    function getStake(
-        bytes32 hotkey,
-        bytes32 coldkey,
-        uint256 netuid
-    ) external view returns (uint256);
+    function removeStake(bytes32 hotkey, uint256 amount, uint256 netuid) external;
+    function getTotalColdkeyStake(bytes32 coldkey) external view returns (uint256);
+    function getStake(bytes32 hotkey, bytes32 coldkey, uint256 netuid) external view returns (uint256);
+
+    function stake(bytes32 hotkey, uint256 netuid, address receiver, uint256 minAlphaAmount)
+        external
+        payable
+        returns (uint256);
 }

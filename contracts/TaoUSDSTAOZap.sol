@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "./interfaces/ISTAO.sol";
 import "./interfaces/IUniswapV2Router02.sol";
+import "./interfaces/IStaking.sol";
 
 contract TaoUSDSTAOZap is ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -74,7 +75,7 @@ contract TaoUSDSTAOZap is ReentrancyGuard {
         return taoUSDAmount;
     }
 
-    function swapExactTAOUSDForTAO(uint256 taoUSDAmount, uint256 minTAO) external payable returns (uint256 taoAmount) {
+    function swapExactTAOUSDForTAO(uint256 taoUSDAmount, uint256 minTAO) public payable returns (uint256 taoAmount) {
         taoUSD.safeTransferFrom(msg.sender, address(this), taoUSDAmount);
 
         address[] memory path = new address[](2);
@@ -86,6 +87,16 @@ contract TaoUSDSTAOZap is ReentrancyGuard {
         uint256 sTAOAmount = sTAO.balanceOf(address(this));
         ISTAO(address(sTAO)).withdraw(sTAOAmount, msg.sender, minTAO);
         return sTAOAmount;
+    }
+
+    function swapTAOUSDToAlpha(uint256 taoUSDAmount, bytes32 hotkey, uint256 netuid, uint256 minAlphaAmount)
+        public
+        returns (uint256 alphaAmount)
+    {
+        uint256 taoAmount = swapExactTAOUSDForTAO(taoUSDAmount, 0);
+        alphaAmount =
+            IStaking(ISUBTENSOR_STAKING_ADDRESS).stake{value: taoAmount}(hotkey, netuid, msg.sender, minAlphaAmount);
+        return alphaAmount;
     }
 
     receive() external payable {}
