@@ -3,6 +3,9 @@ pragma solidity ^0.8.0;
 
 /// @notice Interface for STAO smart contract
 interface ISTAO {
+    /// @notice Error thrown when transfer fails
+    error TransferFailed();
+
     /// @notice Event emitted when a deposit is made
     event Deposit(address indexed sender, address indexed receiver, uint256 amount, uint256 shares);
 
