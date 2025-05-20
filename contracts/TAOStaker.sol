@@ -31,6 +31,10 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
 
     receive() external payable {}
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function __TAOStaker_init(bytes32 pubKey, address stakingPrecompile) internal {
         TAOSTakerStorage storage $ = _getTAOStakerStorage();
         $.pubKey = pubKey;
@@ -108,6 +112,10 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
         // increase/decrease the stakes according to the hotkeys and amounts
         // make it so that the final stake in the hotkeys is the amount specified
         bytes32[] memory hotkeys = getHotkeys();
+
+        if (amounts.length != hotkeys.length) {
+            revert InvalidArrayLength();
+        }
 
         // First withdraw from each hotkey that has more than the he should
         // This is done to avoid having insufficient balance when trying to stake to specific hotkey

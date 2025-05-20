@@ -5,6 +5,9 @@ interface IBTAO {
     /// @notice Error thrown when the amount is insufficient
     error InsufficientAmount();
 
+    /// @notice Error thrown when the fee amount is insufficient
+    error InsufficientFeeAmount();
+
     /// @notice Error thrown when the transfer fails
     error TransferFailed();
 

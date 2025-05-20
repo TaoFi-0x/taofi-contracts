@@ -34,7 +34,7 @@ contract STAO is ERC20Upgradeable, OwnableUpgradeable, ISTAO, TAOStaker {
 
     /// @inheritdoc ISTAO
     function deposit(address receiver, uint256 minSTAO) public payable {
-        require(msg.value >= networkFee, "Amount too low");
+        require(msg.value > networkFee, "Amount too low");
 
         uint256 amount = msg.value - networkFee;
         _stakeOnFirstHotKey(amount);
