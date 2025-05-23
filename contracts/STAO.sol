@@ -34,7 +34,7 @@ contract STAO is ERC20Upgradeable, OwnableUpgradeable, ISTAO, TAOStaker {
 
     /// @inheritdoc ISTAO
     function deposit(address receiver, uint256 minSTAO) public payable {
-        require(msg.value >= networkFee, "Amount too low");
+        require(msg.value > networkFee, "Amount too low");
 
         uint256 amount = msg.value - networkFee;
         _stakeOnFirstHotKey(amount);
@@ -61,7 +61,10 @@ contract STAO is ERC20Upgradeable, OwnableUpgradeable, ISTAO, TAOStaker {
         require(address(this).balance >= taoAmount, "Insufficient TAO balance after unstaking");
 
         _burn(msg.sender, amount);
-        payable(receiver).transfer(taoAmount);
+        (bool success,) = payable(receiver).call{value: taoAmount}("");
+        if (!success) {
+            revert TransferFailed();
+        }
 
         emit Withdrawal(msg.sender, receiver, taoAmount, amount);
     }

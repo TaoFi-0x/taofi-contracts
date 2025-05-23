@@ -10,6 +10,9 @@ interface ITAOStaker {
     /// @param hotkey The hotkey that was not added
     error HotKeyNotAdded(bytes32 hotkey);
 
+    /// @notice Error emitted when a parameter array length is mismatch
+    error InvalidArrayLength();
+
     /// @notice Event emitted when the pubkey is set
     /// @param pubKey The pubkey that was set
     event PubKeySet(bytes32 pubKey);

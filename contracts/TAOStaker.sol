@@ -31,6 +31,10 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
 
     receive() external payable {}
 
+    constructor() {
+        _disableInitializers();
+    }
+
     function __TAOStaker_init(bytes32 pubKey, address stakingPrecompile) internal {
         TAOSTakerStorage storage $ = _getTAOStakerStorage();
         $.pubKey = pubKey;
@@ -109,12 +113,24 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
         // make it so that the final stake in the hotkeys is the amount specified
         bytes32[] memory hotkeys = getHotkeys();
 
+        if (amounts.length != hotkeys.length) {
+            revert InvalidArrayLength();
+        }
+
+        // First withdraw from each hotkey that has more than the he should
+        // This is done to avoid having insufficient balance when trying to stake to specific hotkey
+        for (uint256 i = 0; i < hotkeys.length; i++) {
+            uint256 currentStake = getHotKeyStakedAmount(hotkeys[i]);
+            if (currentStake > amounts[i]) {
+                _removeStake(hotkeys[i], currentStake - amounts[i]);
+            }
+        }
+
+        // Then add to each hotkey that has less than the amount specified
         for (uint256 i = 0; i < hotkeys.length; i++) {
             uint256 currentStake = getHotKeyStakedAmount(hotkeys[i]);
             if (currentStake < amounts[i]) {
                 _addStake(hotkeys[i], amounts[i] - currentStake);
-            } else if (currentStake > amounts[i]) {
-                _removeStake(hotkeys[i], currentStake - amounts[i]);
             }
         }
     }
@@ -191,8 +207,11 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
     /// @param amount The amount to stake
     /// @dev This function is used in order to always automatically stake TAO on the first hotkey
     function _stakeOnFirstHotKey(uint256 amount) internal {
-        bytes32 hotkey = _getTAOStakerStorage().hotkeys[0];
-        _addStake(hotkey, amount);
+        bytes32[] memory hotkeys = _getTAOStakerStorage().hotkeys;
+        if (hotkeys.length != 0) {
+            bytes32 hotkey = hotkeys[0];
+            _addStake(hotkey, amount);
+        }
     }
 
     /// @notice Adds a stake to a hotkey

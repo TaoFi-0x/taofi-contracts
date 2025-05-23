@@ -2,6 +2,15 @@
 pragma solidity ^0.8.21;
 
 interface IBTAO {
+    /// @notice Error thrown when the amount is insufficient
+    error InsufficientAmount();
+
+    /// @notice Error thrown when the fee amount is insufficient
+    error InsufficientFeeAmount();
+
+    /// @notice Error thrown when the transfer fails
+    error TransferFailed();
+
     /// @notice Emits when the network fee is set
     /// @param _networkFee The network fee
     event NetworkFeeSet(uint256 _networkFee);

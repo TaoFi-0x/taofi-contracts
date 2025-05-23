@@ -16,6 +16,12 @@ contract BTAO is IBTAO, ERC20Upgradeable, OwnableUpgradeable {
     address public bridge;
     address public sTAO;
 
+    receive() external payable {}
+
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(uint256 _networkFee, uint256 _bridgeFee, address _sTAO) public initializer {
         __ERC20_init("Bridged TAO", "bTAO");
         __Ownable_init();
@@ -63,7 +69,16 @@ contract BTAO is IBTAO, ERC20Upgradeable, OwnableUpgradeable {
         payable
         returns (bytes32 messageId)
     {
-        uint256 amount = _amount - networkFee - bridgeFee;
+        if (_amount < msg.value) {
+            revert InsufficientAmount();
+        }
+
+        uint256 fee = networkFee + bridgeFee;
+        if (_amount <= fee) {
+            revert InsufficientFeeAmount();
+        }
+
+        uint256 amount = _amount - fee;
         ISTAO(sTAO).deposit{value: amount}(address(this), _minSTAO);
 
         _mint(address(this), amount);
@@ -81,10 +96,15 @@ contract BTAO is IBTAO, ERC20Upgradeable, OwnableUpgradeable {
             _burn(from, amount);
 
             uint256 amountToUnstake = ISTAO(sTAO).convertToShares(amount, 0);
-            ISTAO(sTAO).withdraw(amountToUnstake, address(this), amount);
+            uint256 minToReceive = amount > 0 ? amount - 1 : 0;
+            ISTAO(sTAO).withdraw(amountToUnstake, address(this), minToReceive);
 
             // Send native tokens to receiver
-            payable(to).transfer(amount);
+            (bool success,) = to.call{value: amount}("");
+
+            if (!success) {
+                revert TransferFailed();
+            }
         }
     }
 }
