@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: ISC
 pragma solidity ^0.8.21;
 
-import "hardhat/console.sol";
-
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IStaking} from "./interfaces/IStaking.sol";
@@ -218,7 +216,13 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
     /// @param hotkey The hotkey to add the stake to
     /// @param amount The amount to add
     function _addStake(bytes32 hotkey, uint256 amount) internal {
-        IStaking(getStakingPrecompile()).addStake{value: amount}(hotkey, 0);
+        (bool success,) = payable(getStakingPrecompile()).call{value: amount}(
+            abi.encodeWithSelector(IStaking.addStake.selector, hotkey, 0)
+        );
+        if (!success) {
+            revert LowLevelCallFailed();
+        }
+
         emit StakeAdded(hotkey, amount);
     }
 
@@ -226,7 +230,13 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
     /// @param hotkey The hotkey to remove the stake from
     /// @param amount The amount to remove
     function _removeStake(bytes32 hotkey, uint256 amount) internal {
-        IStaking(getStakingPrecompile()).removeStake(hotkey, amount, 0);
+        (bool success,) = payable(getStakingPrecompile()).call{value: amount}(
+            abi.encodeWithSelector(IStaking.removeStake.selector, hotkey, amount, 0)
+        );
+        if (!success) {
+            revert LowLevelCallFailed();
+        }
+
         emit StakeRemoved(hotkey, amount);
     }
 }

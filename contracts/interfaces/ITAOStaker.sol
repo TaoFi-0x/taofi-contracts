@@ -2,6 +2,9 @@
 pragma solidity ^0.8.21;
 
 interface ITAOStaker {
+    /// @notice Error emitted when a low level call fails
+    error LowLevelCallFailed();
+
     /// @notice Error emitted when a hotkey is already added
     /// @param hotkey The hotkey that was already added
     error HotKeyAlreadyAdded(bytes32 hotkey);
