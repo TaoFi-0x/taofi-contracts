@@ -33,40 +33,51 @@ contract STAO is ERC20Upgradeable, OwnableUpgradeable, ISTAO, TAOStaker {
     }
 
     /// @inheritdoc ISTAO
-    function deposit(address receiver, uint256 minSTAO) public payable {
+    function deposit(address receiver, uint256 minSTAO)
+        public
+        payable
+        returns (uint256 netStaked, uint256 sTAOReceived)
+    {
         require(msg.value > networkFee, "Amount too low");
 
         uint256 amount = msg.value - networkFee;
+
+        uint256 stakedBefore = getHotKeyStakedAmount(getHotKey(0));
         _stakeOnFirstHotKey(amount);
+        uint256 stakedAfter = getHotKeyStakedAmount(getHotKey(0));
 
-        uint256 sTAOAmount = convertToShares(amount, amount);
-        require(sTAOAmount >= minSTAO, "Slippage too big");
+        netStaked = stakedAfter - stakedBefore;
 
-        _mint(receiver, sTAOAmount);
-        emit Deposit(msg.sender, receiver, amount, sTAOAmount);
+        sTAOReceived = convertToShares(netStaked, netStaked);
+        require(sTAOReceived >= minSTAO, "Slippage too big");
+
+        _mint(receiver, sTAOReceived);
+
+        emit Deposit(msg.sender, receiver, amount, sTAOReceived);
+        return (netStaked, sTAOReceived);
     }
 
     /// @inheritdoc ISTAO
-    function withdraw(uint256 amount, address receiver, uint256 minTAO) external {
+    function withdraw(uint256 amount, address receiver, uint256 minTAO) external returns (uint256 netUnstaked) {
         require(balanceOf(msg.sender) >= amount, "Insufficient sTAO balance");
 
         uint256 taoAmount = convertToAssets(amount);
-        require(taoAmount >= minTAO, "Slippage too big");
 
-        uint256 taoAmountAvailable = address(this).balance;
-        if (taoAmountAvailable < taoAmount) {
-            _unstake(taoAmount - taoAmountAvailable);
-        }
+        uint256 taoBalanceBefore = address(this).balance;
+        _unstake(taoAmount);
+        uint256 taoBalanceAfter = address(this).balance;
 
-        require(address(this).balance >= taoAmount, "Insufficient TAO balance after unstaking");
+        netUnstaked = taoBalanceAfter - taoBalanceBefore;
+        require(netUnstaked >= minTAO, "Insufficient TAO balance after unstaking");
 
         _burn(msg.sender, amount);
-        (bool success,) = payable(receiver).call{value: taoAmount}("");
+        (bool success,) = payable(receiver).call{value: netUnstaked}("");
         if (!success) {
             revert TransferFailed();
         }
 
-        emit Withdrawal(msg.sender, receiver, taoAmount, amount);
+        emit Withdrawal(msg.sender, receiver, netUnstaked, amount);
+        return netUnstaked;
     }
 
     /// @inheritdoc ISTAO

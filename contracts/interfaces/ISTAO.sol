@@ -41,13 +41,19 @@ interface ISTAO {
     /// @notice Deposits TAO into the contract, minting sTAO to receiver
     /// @param receiver The address to receives shares
     /// @param minSTAO The minimum amount of sTAO to mint
+    /// @return netStaked The amount of TAO staked after staking fee
+    /// @return sTAOReceived The amount of sTAO received
     /// @dev If the amount of TAO is less than minSTAO, the transaction will revert due to big slippage
-    function deposit(address receiver, uint256 minSTAO) external payable;
+    function deposit(address receiver, uint256 minSTAO)
+        external
+        payable
+        returns (uint256 netStaked, uint256 sTAOReceived);
 
     /// @notice Withdraws TAO from the contract, burning sTAO from sender and sending TAO to receiver
     /// @param amount The amount of sTAO to burn
     /// @param receiver The address to receive TAO
     /// @param minTAO The minimum amount of TAO to receive
+    /// @return netUnstaked The amount of TAO unstaked after staking fee
     /// @dev If the amount of TAO is less than minTAO, the transaction will revert due to big slippage
-    function withdraw(uint256 amount, address receiver, uint256 minTAO) external;
+    function withdraw(uint256 amount, address receiver, uint256 minTAO) external returns (uint256 netUnstaked);
 }

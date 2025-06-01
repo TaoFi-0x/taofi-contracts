@@ -3,12 +3,14 @@ pragma solidity ^0.8.21;
 
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IXERC20} from "./interfaces/IXERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IBridge} from "./interfaces/IBridge.sol";
 import {ISTAO} from "./interfaces/ISTAO.sol";
 import {IBTAO} from "./interfaces/IBTAO.sol";
+import {ITAOStaker} from "./interfaces/ITAOStaker.sol";
 
 contract BTAO is IBTAO, ERC20Upgradeable, OwnableUpgradeable {
     uint256 public networkFee;
@@ -79,12 +81,14 @@ contract BTAO is IBTAO, ERC20Upgradeable, OwnableUpgradeable {
         }
 
         uint256 amount = _amount - fee;
-        ISTAO(sTAO).deposit{value: amount}(address(this), _minSTAO);
+        (uint256 netStaked,) = ISTAO(sTAO).deposit{value: amount}(address(this), _minSTAO);
 
-        _mint(address(this), amount);
-        IERC20(address(this)).approve(bridge, amount);
+        uint256 alignedNetStaked = _alignDecimalsUp(netStaked);
 
-        return IBridge(bridge).transferRemote{value: bridgeFee}(_destination, _recipient, amount);
+        _mint(address(this), alignedNetStaked);
+        IERC20(address(this)).approve(bridge, alignedNetStaked);
+
+        return IBridge(bridge).transferRemote{value: bridgeFee}(_destination, _recipient, alignedNetStaked);
     }
 
     function _transfer(address from, address to, uint256 amount) internal override {
@@ -95,16 +99,17 @@ contract BTAO is IBTAO, ERC20Upgradeable, OwnableUpgradeable {
             // If caller is bridge, we need to burn the tokens
             _burn(from, amount);
 
-            uint256 amountToUnstake = ISTAO(sTAO).convertToShares(amount, 0);
-            uint256 minToReceive = amount > 0 ? amount - 1 : 0;
-            ISTAO(sTAO).withdraw(amountToUnstake, address(this), minToReceive);
-
-            // Send native tokens to receiver
-            (bool success,) = to.call{value: amount}("");
-
-            if (!success) {
-                revert TransferFailed();
-            }
+            uint256 alignedAmount = _alignDecimalsDown(amount);
+            uint256 amountToUnstake = ISTAO(sTAO).convertToShares(alignedAmount, 0);
+            ISTAO(sTAO).withdraw(amountToUnstake, to, 0);
         }
+    }
+
+    function _alignDecimalsUp(uint256 amount) internal view returns (uint256) {
+        return amount * 10 ** (decimals() - IERC20Metadata(sTAO).decimals());
+    }
+
+    function _alignDecimalsDown(uint256 amount) internal view returns (uint256) {
+        return amount / 10 ** (decimals() - IERC20Metadata(sTAO).decimals());
     }
 }
