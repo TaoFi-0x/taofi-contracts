@@ -152,11 +152,11 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.21",
+        version: "0.8.24",
         settings: {
           // viaIR: true,
           optimizer: { enabled: true, runs: 1 },
-          evmVersion: "paris",
+          evmVersion: "cancun",
         },
       },
     ],
