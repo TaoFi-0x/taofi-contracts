@@ -83,12 +83,10 @@ contract BTAO is IBTAO, ERC20Upgradeable, OwnableUpgradeable {
         uint256 amount = _amount - fee;
         (uint256 netStaked,) = ISTAO(sTAO).deposit{value: amount}(address(this), _minSTAO);
 
-        uint256 alignedNetStaked = _alignDecimalsUp(netStaked);
+        _mint(address(this), netStaked);
+        IERC20(address(this)).approve(bridge, netStaked);
 
-        _mint(address(this), alignedNetStaked);
-        IERC20(address(this)).approve(bridge, alignedNetStaked);
-
-        return IBridge(bridge).transferRemote{value: bridgeFee}(_destination, _recipient, alignedNetStaked);
+        return IBridge(bridge).transferRemote{value: bridgeFee}(_destination, _recipient, netStaked);
     }
 
     function _transfer(address from, address to, uint256 amount) internal override {
@@ -99,17 +97,8 @@ contract BTAO is IBTAO, ERC20Upgradeable, OwnableUpgradeable {
             // If caller is bridge, we need to burn the tokens
             _burn(from, amount);
 
-            uint256 alignedAmount = _alignDecimalsDown(amount);
-            uint256 amountToUnstake = ISTAO(sTAO).convertToShares(alignedAmount, 0);
+            uint256 amountToUnstake = ISTAO(sTAO).convertToShares(amount, 0);
             ISTAO(sTAO).withdraw(amountToUnstake, to, 0);
         }
-    }
-
-    function _alignDecimalsUp(uint256 amount) internal view returns (uint256) {
-        return amount * 10 ** (decimals() - IERC20Metadata(sTAO).decimals());
-    }
-
-    function _alignDecimalsDown(uint256 amount) internal view returns (uint256) {
-        return amount / 10 ** (decimals() - IERC20Metadata(sTAO).decimals());
     }
 }

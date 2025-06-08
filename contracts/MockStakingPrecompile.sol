@@ -22,7 +22,7 @@ contract MockStakingPrecompile is IStaking {
     // Allows receiving TAO
     receive() external payable {}
 
-    function addStake(bytes32 hotkey, uint256 netuid) external payable override {
+    function addStake(bytes32 hotkey, uint256, uint256 netuid) external payable override {
         require(hotkey != bytes32(0), "Invalid hotkey");
         require(msg.value > 0, "Must stake non-zero amount");
 

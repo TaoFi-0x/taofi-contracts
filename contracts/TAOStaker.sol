@@ -7,6 +7,8 @@ import {IStaking} from "./interfaces/IStaking.sol";
 import {ITAOStaker} from "./interfaces/ITAOStaker.sol";
 
 contract TAOStaker is OwnableUpgradeable, ITAOStaker {
+    uint256 public constant RAO = 10 ** 9;
+
     struct TAOSTakerStorage {
         /// @notice Pubkey of this contract
         bytes32 pubKey;
@@ -64,7 +66,7 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
 
     /// @inheritdoc ITAOStaker
     function getHotKeyStakedAmount(bytes32 hotkey) public view returns (uint256) {
-        return IStaking(getStakingPrecompile()).getStake(hotkey, getPubKey(), 0);
+        return IStaking(getStakingPrecompile()).getStake(hotkey, getPubKey(), 0) * RAO;
     }
 
     /// @inheritdoc ITAOStaker
@@ -216,8 +218,10 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
     /// @param hotkey The hotkey to add the stake to
     /// @param amount The amount to add
     function _addStake(bytes32 hotkey, uint256 amount) internal {
-        (bool success,) = payable(getStakingPrecompile()).call{value: amount}(
-            abi.encodeWithSelector(IStaking.addStake.selector, hotkey, 0)
+        uint256 amountInRAO = amount / RAO;
+
+        (bool success,) = payable(getStakingPrecompile()).call{value: amountInRAO}(
+            abi.encodeWithSelector(IStaking.addStake.selector, hotkey, amountInRAO, 0)
         );
         if (!success) {
             revert LowLevelCallFailed();
@@ -230,8 +234,10 @@ contract TAOStaker is OwnableUpgradeable, ITAOStaker {
     /// @param hotkey The hotkey to remove the stake from
     /// @param amount The amount to remove
     function _removeStake(bytes32 hotkey, uint256 amount) internal {
-        (bool success,) = payable(getStakingPrecompile()).call{value: amount}(
-            abi.encodeWithSelector(IStaking.removeStake.selector, hotkey, amount, 0)
+        uint256 amountInRAO = amount / RAO;
+
+        (bool success,) = address(getStakingPrecompile()).call(
+            abi.encodeWithSelector(IStaking.removeStake.selector, hotkey, amountInRAO, 0)
         );
         if (!success) {
             revert LowLevelCallFailed();
